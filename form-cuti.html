@@ -1,0 +1,53 @@
+<script type="text/javascript">
+  RED.nodes.registerType("form-cuti", {
+    category: "custom",
+    color: "#a6bbcf",
+    defaults: {
+      file: { value: "", required: true },
+      name: { value: "" },
+    },
+    inputs: 1,
+    outputs: 1,
+    icon: "file.png",
+    label: function () {
+      return "Form Cuti";
+    },
+    oneditprepare: function () {
+      let $methodDropdown = $("#node-input-file");
+
+      // Kosongkan dropdown sebelum diisi
+      $methodDropdown.empty();
+
+      // Ambil data metode dari endpoint
+      $.getJSON("/my-custom-endpoint", function (data) {
+        data.methods.forEach(function (method) {
+          let newMethod = method + ".doc";
+
+          $methodDropdown.append(
+            $("<option></option>").val(newMethod).text(newMethod)
+          );
+        });
+
+        // Pilih nilai yang sebelumnya disimpan
+        if (data.methods.includes($methodDropdown.val())) {
+          $methodDropdown.val($methodDropdown.val());
+        }
+      });
+    },
+  });
+</script>
+
+<!-- Form Editor untuk Node -->
+<script type="text/x-red" data-template-name="form-cuti">
+  <div class="form-row">
+      <label for="node-input-file"><i class="fa fa-file"></i> File</label>
+      <select id="node-input-file"></select>
+  </div>
+  <div class="form-row">
+      <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
+      <input type="text" id="node-input-name">
+  </div>
+</script>
+<script type="text/html" data-help-name="form-cuti">
+  <p>Node ini menyediakan form cuti yang dapat dikonfigurasi langsung.</p>
+</script>

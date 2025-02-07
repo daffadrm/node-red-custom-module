@@ -1,0 +1,219 @@
+<script type="text/javascript">
+  RED.nodes.registerType("custom-table", {
+    category: "custom",
+    paletteLabel: "Table",
+    defaults: {
+      groups: { value: "" },
+      name: { value: "" },
+      label: { value: "" },
+      rows: { value: [{ label: "", name: "", type: "string" }] }, // Data tabel
+    },
+    inputs: 1,
+    outputs: 1,
+    icon: "font-awesome/fa-table",
+    label: function () {
+      return "Table";
+    },
+    oneditprepare: function () {
+      let node = this;
+      let rows = node.rows || [];
+
+      function renderTable() {
+        let table = $("#node-table-body");
+        table.empty();
+
+        rows.forEach((row, rowIndex) => {
+          let rowHtml = `
+                  <tr>
+                      <td><input type="text" style="width: 100%; border: none" class="table-cell" data-row="${rowIndex}" data-col="label" value="${
+            row.label || ""
+          }"></td>
+                      <td><input type="text" style="width: 100%; border: none" class="table-cell" data-row="${rowIndex}" data-col="name" value="${
+            row.name || ""
+          }"></td>
+                      <td>
+                          <select class="table-cell" data-row="${rowIndex}" data-col="type" style="width: 100%; border: none">
+                              <option value="string" ${
+                                row.type === "string" ? "selected" : ""
+                              }>String</option>
+                              <option value="number" ${
+                                row.type === "number" ? "selected" : ""
+                              }>Number</option>
+                              <option value="boolean" ${
+                                row.type === "boolean" ? "selected" : ""
+                              }>Boolean</option>
+                          </select>
+                      </td>
+                      <td><button class="delete-row" data-row="${rowIndex}">🗑</button></td>
+                  </tr>
+              `;
+          table.append(rowHtml);
+        });
+      }
+
+      // Tambah baris baru
+      $("#add-row").click(function () {
+        rows.push({ label: "", name: "", type: "string" });
+        renderTable();
+      });
+
+      // Edit nilai tabel
+      $("#node-table-body").on("input change", ".table-cell", function () {
+        let rowIndex = $(this).data("row");
+        let col = $(this).data("col");
+        rows[rowIndex][col] = $(this).val();
+      });
+
+      // Hapus baris
+      $("#node-table-body").on("click", ".delete-row", function () {
+        let rowIndex = $(this).data("row");
+        rows.splice(rowIndex, 1);
+        renderTable();
+      });
+
+      let groupHeaders = {
+        "Group A": ["Label A", "Name A", "Type A", "Action"],
+        "Group B": ["Label B", "Name B", "Type B", "Action"],
+        "Group C": ["Label C", "Name C", "Type C", "Action"],
+      };
+
+      // const groups = this.groups || ["[Home] Testing", "[Office] Development"];
+      // const groupSelect = $("#node-input-groups");
+
+      const $dropdown = $("#node-input-groups");
+      const $tableHead = $("#node-table thead tr");
+      Object.keys(groupHeaders).forEach((group) => {
+        $dropdown.append(`<option value="${group}">${group}</option>`);
+      });
+
+      // groupSelect.empty();
+      // groups.forEach((group) => {
+      //   groupSelect.append(`<option value="${group}">${group}</option>`);
+      // });
+
+      function updateDropdown() {
+        $dropdown.empty();
+        Object.keys(groupHeaders).forEach((group) => {
+          $dropdown.append(`<option value="${group}">${group}</option>`);
+        });
+      }
+
+      // Fungsi untuk memperbarui header tabel berdasarkan pilihan dropdown
+      function updateTableHeaders(selectedGroup) {
+        const headers = groupHeaders[selectedGroup] || [
+          "Label",
+          "Name",
+          "Type",
+          "Action",
+        ];
+        $tableHead.empty();
+        headers.forEach((headerText) => {
+          $tableHead.append(`<th>${headerText}</th>`);
+        });
+      }
+
+      $dropdown.on("change", function () {
+        updateTableHeaders($(this).val());
+      });
+
+      // Trigger perubahan pertama kali agar tabel menyesuaikan dengan default dropdown
+      $dropdown.trigger("change");
+
+      $("#edit-group").on("click", function () {
+        const selectedGroup = $dropdown.val();
+        if (!selectedGroup) return alert("Pilih group terlebih dahulu!");
+
+        const newGroupName = prompt("Edit nama group:", selectedGroup);
+        if (newGroupName && newGroupName !== selectedGroup) {
+          groupHeaders[newGroupName] = groupHeaders[selectedGroup];
+          delete groupHeaders[selectedGroup];
+          updateDropdown();
+          $dropdown.val(newGroupName).trigger("change");
+        }
+      });
+
+      $("#add-group").on("click", function () {
+        const newGroupName = prompt("Masukkan nama group baru:");
+        if (newGroupName && !groupHeaders[newGroupName]) {
+          groupHeaders[newGroupName] = ["Label", "Name", "Type", "Action"];
+          updateDropdown();
+          $dropdown.val(newGroupName).trigger("change");
+        } else {
+          alert("Nama group sudah ada atau tidak valid!");
+        }
+      });
+
+      // tombol hapus group
+      $("#delete-group").on("click", function () {
+        const selectedGroup = $dropdown.val();
+        if (!selectedGroup) return alert("Pilih group terlebih dahulu!");
+
+        if (confirm(`Apakah Anda yakin ingin menghapus "${selectedGroup}"?`)) {
+          delete groupHeaders[selectedGroup];
+          updateDropdown();
+        }
+      });
+
+      updateDropdown();
+
+      renderTable();
+    },
+    oneditsave: function () {
+      this.rows = $("#node-table-body tr")
+        .map(function () {
+          return {
+            label: $(this).find('[data-col="label"]').val(),
+            name: $(this).find('[data-col="name"]').val(),
+            type: $(this).find('[data-col="type"]').val(),
+          };
+        })
+        .get();
+    },
+  });
+</script>
+
+<script type="text/html" data-template-name="custom-table">
+  <div class="form-row">
+    <label for="node-input-groups"><i class="fa fa-table"></i> Group</label>
+    <select id="node-input-groups" style="width:55%;"></select>
+    <button id="edit-group" class="red-ui-button">
+      <i class="fa fa-pencil"></i>
+    </button>
+    <button id="add-group" class="red-ui-button">
+      <i class="fa fa-plus"></i>
+    </button>
+    <button id="delete-group" class="red-ui-button">
+      <i class="fa fa-trash"></i>
+    </button>
+  </div>
+  <div class="form-row">
+    <label for="node-input-name"><i class="fa fa-tag"></i> Nama</label>
+    <input type="text" id="node-input-name" />
+  </div>
+  <div class="form-row">
+    <label for="node-input-label"><i class="fa fa-tag"></i> Label</label>
+    <input type="text" id="node-input-label" />
+  </div>
+  <div class="form-row">
+    <label><i class="fa fa-table"></i> Data Tabel</label>
+    <table id="node-table" border="1">
+      <thead>
+        <tr>
+          <th>Label</th>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody id="node-table-body"></tbody>
+    </table>
+    <button id="add-row">+ Tambah Baris</button>
+  </div>
+</script>
+
+<script type="text/html" data-help-name="custom-table">
+  <p>
+    Node ini menyediakan tabel yang dapat dikonfigurasi langsung di editor
+    Node-RED.
+  </p>
+</script>

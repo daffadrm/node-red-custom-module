@@ -1,0 +1,47 @@
+<script type="text/javascript">
+  RED.nodes.registerType("form-approval", {
+    category: "custom",
+    color: "#d6bbcf",
+    defaults: {
+      name: { value: "" },
+      approved: { value: "" },
+    },
+    inputs: 1,
+    outputs: 1,
+    icon: "file.png",
+    label: function () {
+      return "Approval";
+    },
+    // oneditprepare: function () {
+    //   let $methodDropdown = $("#node-input-approved");
+
+    //   $methodDropdown.empty();
+
+    //   $approvedDropdown.append(
+    //     $("<option></option>").val("").text("Select an option")
+    //   );
+
+    //   $approvedDropdown.append($("<option></option>").val("yes").text("Yes"));
+    //   $approvedDropdown.append($("<option></option>").val("no").text("No"));
+
+    //   $approvedDropdown.val(this.approved);
+    // },
+  });
+</script>
+
+<script type="text/x-red" data-template-name="form-approval">
+  <div class="form-row">
+      <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
+      <input type="text" id="node-input-name">
+  </div>
+  <div class="form-row">
+    <label for="node-input-approved"><i class="fa fa-tag"></i> Approved</label>
+    <select id="node-input-approved">
+      <option value="yes">Yes</option>
+      <option value="no">No</option>
+    </select>
+  </div>
+</script>
+<script type="text/html" data-help-name="form-approval">
+  <p>Node ini menyediakan form approval yang dapat dikonfigurasi langsung.</p>
+</script>
