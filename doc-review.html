@@ -1,0 +1,94 @@
+<script type="text/javascript">
+  RED.nodes.registerType("document-review", {
+    category: "custom",
+    paletteLabel: "Doc Review",
+    defaults: {
+      selectedDoc: { value: "" },
+    },
+    inputs: 1,
+    outputs: 1,
+    icon: "font-awesome/fa-file",
+    label: function () {
+      return "Document Review";
+    },
+    oneditprepare: function () {
+      let node = this;
+
+      //   function fetchDocuments() {
+      //     return $.ajax({
+      //       url: "https://api.example.com/documents", // Ganti dengan API Anda
+      //       method: "GET",
+      //       dataType: "json",
+      //     });
+      //   }
+
+      function fetchDocuments() {
+        // Simulasi request ke API, ganti dengan endpoint asli jika sudah tersedia
+        return new Promise((resolve) => {
+          setTimeout(() => {
+            resolve([
+              {
+                name: "Dokumen Contoh 1",
+                download_url: "https://yourserver.com/dummy_document.doc",
+              },
+              {
+                name: "Dokumen Contoh 2",
+                download_url:
+                  "https://docs.google.com/spreadsheets/d/1t_10gzJGbMRdpLV7wBZwXOg9T9jTu1KKQVnRyHmHaqM/edit?usp=drive_link",
+              },
+              {
+                name: "Dokumen Contoh 3",
+                download_url: "https://example.com/sample3.pdf",
+              },
+            ]);
+          }, 500); // Simulasi delay 500ms
+        });
+      }
+
+      function renderDropdown(documents) {
+        let dropdown = $("#node-input-selectedDoc");
+        dropdown.empty();
+        dropdown.append('<option value="">-- Pilih Dokumen --</option>');
+
+        documents.forEach((doc) => {
+          dropdown.append(
+            `<option value="${doc.download_url}">${doc.name}</option>`
+          );
+        });
+
+        dropdown.val(node.selectedDoc);
+      }
+
+      // Fetch documents on edit
+      fetchDocuments().then((docs) => {
+        renderDropdown(docs);
+      });
+
+      // Handle dropdown change
+      $("#node-input-selectedDoc").on("change", function () {
+        let docUrl = $(this).val();
+        if (docUrl) {
+          let viewerUrl = `https://docs.google.com/gview?url=${encodeURIComponent(
+            docUrl
+          )}&embedded=true`;
+          $("#pdfViewer").attr("src", docUrl); // Update PDF Viewer di UI
+        }
+      });
+    },
+  });
+</script>
+
+<script type="text/html" data-template-name="document-review">
+  <div class="form-row">
+    <label for="node-input-selectedDoc">Pilih Dokumen</label>
+    <select id="node-input-selectedDoc"></select>
+  </div>
+  <div class="form-row">
+    <iframe
+      id="pdfViewer"
+      width="100%"
+      height="500px"
+      style="border: 1px solid #ddd;"
+    ></iframe>
+  </div>
+</script>
