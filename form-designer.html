@@ -1,0 +1,171 @@
+<script type="text/javascript">
+  RED.nodes.registerType("form-designer", {
+    category: "custom",
+    paletteLabel: "Form Designer",
+    defaults: {
+      files: { value: "" },
+      rows: { value: [{ label: "", name: "", type: "string" }] }, // Data tabel
+    },
+    inputs: 1,
+    outputs: 1,
+    icon: "font-awesome/fa-table",
+    label: function () {
+      return "Form Designer";
+    },
+    oneditprepare: function () {
+      let node = this;
+      let selectedGroup = node.files;
+
+      let groupData = [
+        {
+          label: "File A",
+          headers: [{ label: "Label A1", name: "Name A1", type: "string" }],
+        },
+        {
+          label: "File B",
+          headers: [{ label: "Label B1", name: "Name B1", type: "number" }],
+        },
+        {
+          label: "File C",
+          headers: [{ label: "Label C1", name: "Name C1", type: "boolean" }],
+        },
+        {
+          label: "File D",
+          headers: [{ label: "Label D1", name: "Name D1", type: "string" }],
+        },
+      ];
+
+      // Jika ada data sebelumnya, gunakan itu
+      if (node.rows && node.files) {
+        groupData[node.files] = node.rows;
+      }
+
+      function renderTable() {
+        let table = $("#node-table-body");
+        table.empty();
+
+        let selectedGroupData = groupData.find(
+          (g) => g.label === selectedGroup
+        );
+        let rows = selectedGroupData ? selectedGroupData.headers : [];
+
+        rows.forEach((row, rowIndex) => {
+          let rowHtml = `
+              <tr>
+                <td><input type="text" style="width: 100%; border: none" readonly class="table-cell" data-row="${rowIndex}" data-col="label" value="${
+            row.label || ""
+          }"></td>
+                <td><input type="text" style="width: 100%; border: none" readonly class="table-cell" data-row="${rowIndex}" data-col="name" value="${
+            row.name || ""
+          }"></td>
+                <td>
+                  <select class="table-cell" data-row="${rowIndex}" data-col="type" style="width: 100%; border: none" disabled>
+                    <option value="string" ${
+                      row.type === "string" ? "selected" : ""
+                    }>String</option>
+                    <option value="number" ${
+                      row.type === "number" ? "selected" : ""
+                    }>Number</option>
+                    <option value="boolean" ${
+                      row.type === "boolean" ? "selected" : ""
+                    }>Boolean</option>
+                  </select>
+                </td>
+              </tr>
+            `;
+          table.append(rowHtml);
+        });
+      }
+
+      // Tambah baris baru ke grup yang dipilih
+      $("#add-row").click(function () {
+        if (!groupData[selectedGroup]) {
+          groupData[selectedGroup] = [];
+        }
+        groupData[selectedGroup].push({ label: "", name: "", type: "string" });
+        renderTable();
+      });
+
+      // Edit nilai tabel
+      $("#node-table-body").on("input change", ".table-cell", function () {
+        let rowIndex = $(this).data("row");
+        let col = $(this).data("col");
+        groupData[selectedGroup][rowIndex][col] = $(this).val();
+      });
+
+      // Hapus baris
+      $("#node-table-body").on("click", ".delete-row", function () {
+        let rowIndex = $(this).data("row");
+        groupData[selectedGroup].splice(rowIndex, 1);
+        renderTable();
+      });
+
+      // Daftar grup yang tersedia
+      const $dropdown = $("#node-input-files");
+      $dropdown.empty();
+
+      groupData.forEach((group) => {
+        $dropdown.append(
+          `<option value="${group.label}">${group.label}</option>`
+        );
+      });
+
+      $dropdown.val(selectedGroup);
+
+      $dropdown.on("change", function () {
+        selectedGroup = $(this).val();
+        renderTable();
+      });
+
+      function updateDropdown() {
+        $dropdown.empty();
+        Object.keys(groupData).forEach((group) => {
+          $dropdown.append(`<option value="${group}">${group}</option>`);
+        });
+        $dropdown.val(selectedGroup);
+      }
+
+      // Render pertama kali
+      renderTable();
+    },
+    oneditsave: function () {
+      this.files = $("#node-input-files").val();
+      this.rows = $("#node-table-body tr")
+        .map(function () {
+          return {
+            label: $(this).find('[data-col="label"]').val(),
+            name: $(this).find('[data-col="name"]').val(),
+            type: $(this).find('[data-col="type"]').val(),
+          };
+        })
+        .get();
+    },
+  });
+</script>
+
+<script type="text/html" data-template-name="form-designer">
+  <div class="form-row">
+    <label for="node-input-files"><i class="fa fa-file"></i> FIle</label>
+    <select id="node-input-files" style="width:50%;"></select>
+  </div>
+  <div class="form-row">
+    <label><i class="fa fa-table"></i> Form Element</label>
+    <table id="node-table" border="1" style="width: 100%;">
+      <thead>
+        <tr>
+          <th>Label</th>
+          <th>Name</th>
+          <th>Type</th>
+        </tr>
+      </thead>
+      <tbody id="node-table-body"></tbody>
+    </table>
+  </div>
+</script>
+
+<script type="text/html" data-help-name="form-designer">
+  <p>
+    Node ini menyediakan tabel yang dapat dikonfigurasi langsung di editor
+    Node-RED.
+  </p>
+</script>
