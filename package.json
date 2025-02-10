@@ -12,7 +12,9 @@
       "nodes": {
         "form-cuti": "form-cuti.js",
         "form-approval": "form-approval.js",
-        "table": "table.js"
+        "table": "table.js",
+        "form-designer": "form-designer.js",
+        "doc-review": "doc-review.js"
       }
     }
   }
