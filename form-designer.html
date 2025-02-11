@@ -14,9 +14,12 @@
     },
     oneditprepare: function () {
       let node = this;
-      let selectedGroup = node.files;
+      let selectedGroup = node.files || "";
+      let groupData = [];
 
-      let groupData = [
+      const $dropdown = $("#node-input-files");
+
+      let groupDataDummy = [
         {
           label: "File A",
           headers: [{ label: "Label A1", name: "Name A1", type: "string" }],
@@ -35,9 +38,46 @@
         },
       ];
 
+      function getAppIdFromUrl() {
+        const urlParams = new URLSearchParams(window.location.search);
+        return urlParams.get("appId");
+      }
+
+      const appIdParams = getAppIdFromUrl();
+
+      $(document).ready(function () {
+        $.ajax({
+          url: `https://bpm.cudo.co.id/form/get-dropdown?app_id=${appIdParams}`,
+          type: "GET",
+          dataType: "json",
+          success: function (data) {
+            groupData = data.data;
+
+            updateDropdown();
+            renderTable();
+          },
+          error: function (xhr, status, error) {
+            console.error("Error:", status, error);
+          },
+        });
+      });
+
       // Jika ada data sebelumnya, gunakan itu
       if (node.rows && node.files) {
-        groupData[node.files] = node.rows;
+        let selectedIndex = groupData.findIndex(
+          (g) => g.form_name === node.files
+        );
+
+        if (selectedIndex !== -1) {
+          groupData[selectedIndex].headers = node.rows;
+        } else {
+          groupData.push({
+            form_name: node.files,
+            headers: node.rows,
+          });
+        }
+
+        renderTable();
       }
 
       function renderTable() {
@@ -45,7 +85,7 @@
         table.empty();
 
         let selectedGroupData = groupData.find(
-          (g) => g.label === selectedGroup
+          (g) => g.form_name === selectedGroup
         );
         let rows = selectedGroupData ? selectedGroupData.headers : [];
 
@@ -56,7 +96,7 @@
             row.label || ""
           }"></td>
                 <td><input type="text" style="width: 100%; border: none" readonly class="table-cell" data-row="${rowIndex}" data-col="name" value="${
-            row.name || ""
+            row.label || ""
           }"></td>
                 <td>
                   <select class="table-cell" data-row="${rowIndex}" data-col="type" style="width: 100%; border: none" disabled>
@@ -100,18 +140,6 @@
         renderTable();
       });
 
-      // Daftar grup yang tersedia
-      const $dropdown = $("#node-input-files");
-      $dropdown.empty();
-
-      groupData.forEach((group) => {
-        $dropdown.append(
-          `<option value="${group.label}">${group.label}</option>`
-        );
-      });
-
-      $dropdown.val(selectedGroup);
-
       $dropdown.on("change", function () {
         selectedGroup = $(this).val();
         renderTable();
@@ -119,11 +147,17 @@
 
       function updateDropdown() {
         $dropdown.empty();
-        Object.keys(groupData).forEach((group) => {
-          $dropdown.append(`<option value="${group}">${group}</option>`);
+
+        groupData.forEach((group) => {
+          $dropdown.append(
+            `<option value="${group.form_name}">${group.form_name}</option>`
+          );
         });
+
         $dropdown.val(selectedGroup);
       }
+
+      updateDropdown();
 
       // Render pertama kali
       renderTable();
@@ -144,11 +178,11 @@
 </script>
 
 <script type="text/html" data-template-name="form-designer">
-  <div class="form-row">
+  <div class="form-row" style="display: flex; align-items: center;">
     <label for="node-input-files"><i class="fa fa-file"></i> FIle</label>
-    <select id="node-input-files" style="width:50%;"></select>
+    <select id="node-input-files" style="width:100%;"></select>
   </div>
-  <div class="form-row">
+  <div class="form-row" style="display: flex;">
     <label><i class="fa fa-table"></i> Form Element</label>
     <table id="node-table" border="1" style="width: 100%;">
       <thead>
