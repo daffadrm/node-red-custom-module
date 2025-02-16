@@ -5,6 +5,7 @@
     defaults: {
       files: { value: "" },
       rows: { value: [{ label: "", name: "", type: "string" }] }, // Data tabel
+      options: { value: "Option 1, Option 2, Option 3", required: true },
     },
     inputs: 1,
     outputs: 1,
@@ -38,6 +39,60 @@
         },
       ];
 
+      var optionsMultiple = this.options ? this.options.split(",") : [];
+      var dropdownMultiple = document.getElementById("node-input-dropdown");
+      dropdownMultiple.innerHTML = "";
+
+      optionsMultiple.forEach(function (opt) {
+        var item = document.createElement("div");
+        item.className = "dropdown-item";
+        item.textContent = opt.trim();
+
+        var input = document.getElementById("node-input-options");
+        var selectedValues = input.value
+          ? input.value.split(",").map((v) => v.trim())
+          : [];
+
+        if (selectedValues.includes(opt.trim())) {
+          item.classList.add("active-options"); // Tambahkan class jika sudah dipilih
+        }
+
+        item.onclick = function (event) {
+          toggleSelection(opt.trim(), event);
+        };
+        dropdownMultiple.appendChild(item);
+      });
+
+      function toggleSelection(value, event) {
+        var input = document.getElementById("node-input-options");
+        var selectedValues = input.value.split(",").map((v) => v.trim());
+        var element = event.target;
+        if (selectedValues.includes(value)) {
+          selectedValues = selectedValues.filter((v) => v !== value);
+          element.classList.remove("active-options");
+        } else {
+          selectedValues.push(value);
+          element.classList.add("active-options");
+        }
+        input.value = selectedValues;
+      }
+
+      document
+        .getElementById("node-input-options")
+        .addEventListener("click", function () {
+          dropdownMultiple.style.display =
+            dropdownMultiple.style.display === "block" ? "none" : "block";
+        });
+
+      document.addEventListener("click", function (event) {
+        if (
+          !event.target.closest("#node-input-options") &&
+          !event.target.closest("#node-input-dropdown")
+        ) {
+          dropdownMultiple.style.display = "none";
+        }
+      });
+
       function getAppIdFromUrl() {
         const urlParams = new URLSearchParams(window.location.search);
         return urlParams.get("appId");
@@ -57,7 +112,27 @@
             renderTable();
           },
           error: function (xhr, status, error) {
+            console.log("Exr: ", xhr);
             console.error("Error:", status, error);
+            let errorMessage = "Terjadi kesalahan saat mengambil data.";
+
+            // Cek status code dari response
+            if (xhr.status === 400) {
+              errorMessage = "Permintaan tidak valid (400).";
+            } else if (xhr.status === 401) {
+              errorMessage = "Anda tidak memiliki izin (401).";
+            } else if (xhr.status === 403) {
+              errorMessage = "Akses ditolak (403).";
+            } else if (xhr.status === 404) {
+              errorMessage = "Data tidak ditemukan (404).";
+            } else if (xhr.status === 500) {
+              errorMessage = "Server mengalami kesalahan (500).";
+            }
+
+            $("#node-input-files").html(
+              '<option value="">Data tidak ditemukan</option>'
+            );
+            $("#error-message").text(errorMessage).show();
           },
         });
       });
@@ -177,11 +252,50 @@
   });
 </script>
 
+<style>
+  .dropdown-container {
+    position: relative;
+    display: inline-block;
+    width: 100%;
+  }
+
+  #node-input-dropdown {
+    display: none;
+    position: absolute;
+    width: 100%;
+    background: white;
+    border: 1px solid #ccc;
+    max-height: 150px;
+    overflow-y: auto;
+    z-index: 1000;
+  }
+
+  .dropdown-item {
+    padding: 5px;
+    cursor: pointer;
+  }
+
+  .dropdown-item:hover {
+    background-color: #ddd;
+  }
+
+  .active-options {
+    background-color: #d3d3d3;
+  }
+</style>
+
 <script type="text/html" data-template-name="form-designer">
-  <div class="form-row" style="display: flex; align-items: center;">
-    <label for="node-input-files"><i class="fa fa-file"></i> FIle</label>
-    <select id="node-input-files" style="width:100%;"></select>
+  <div class="form-row" style="display: flex;">
+    <label for="node-input-files"><i class="fa fa-file"></i> File</label>
+    <div style="width: 100%; display: flex; flex-direction: column;">
+      <select id="node-input-files" style="width: 100%;"></select>
+      <div
+        id="error-message"
+        style="color: red; margin-top: 5px; display: none;"
+      ></div>
+    </div>
   </div>
+
   <div class="form-row" style="display: flex;">
     <label><i class="fa fa-table"></i> Form Element</label>
     <table id="node-table" border="1" style="width: 100%;">
@@ -194,6 +308,20 @@
       </thead>
       <tbody id="node-table-body"></tbody>
     </table>
+  </div>
+
+  <div class="form-row" style="display: flex;">
+    <label for="node-input-options"><i class="fa fa-list"></i> Options</label>
+    <div class="dropdown-container">
+      <input
+        type="text"
+        id="node-input-options"
+        placeholder="Click to select options"
+        readonly
+        style="width: 100%; cursor: pointer;"
+      />
+      <div id="node-input-dropdown"></div>
+    </div>
   </div>
 </script>
 
