@@ -4,9 +4,13 @@ module.exports = function (RED) {
         var node = this;
         
         node.on('input', function (msg) {
+            console.log(msg, "msg")
             try {
                 msg.files = config.files;
-                msg.rows = config.rows
+                msg.rows = config.rows;
+                msg.flag = config.flag;
+                msg.options = config.options
+
                 node.warn("form designer: " + JSON.stringify(msg)); 
                 node.send(msg);
             } catch (error) {

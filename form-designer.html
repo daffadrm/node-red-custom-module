@@ -5,7 +5,8 @@
     defaults: {
       files: { value: "" },
       rows: { value: [{ label: "", name: "", type: "string" }] }, // Data tabel
-      options: { value: "Option 1, Option 2, Option 3", required: true },
+      options: { value: [] },
+      flag: { value: [] },
     },
     inputs: 1,
     outputs: 1,
@@ -39,43 +40,105 @@
         },
       ];
 
-      var optionsMultiple = this.options ? this.options.split(",") : [];
+      let dummyOptionsData = [
+        {
+          flag_category: "Cluster",
+          flag_id: "FLG20241121054302",
+          flag_name: "Depok",
+        },
+        {
+          flag_category: "Cluster",
+          flag_id: "FLG20241121054323",
+          flag_name: "Bogor",
+        },
+        {
+          flag_category: "Cluster",
+          flag_id: "FLG20241121054326",
+          flag_name: "Tanggerang",
+        },
+      ];
+
+      let optionsData = [];
+      let selectedOptions = [];
+
       var dropdownMultiple = document.getElementById("node-input-dropdown");
-      dropdownMultiple.innerHTML = "";
+      var inputDisplay = document.getElementById("node-input-options"); // Untuk menampilkan flag_name
+      var inputHidden = document.getElementById("node-input-hidden"); // Untuk menyimpan flag_id
 
-      optionsMultiple.forEach(function (opt) {
-        var item = document.createElement("div");
-        item.className = "dropdown-item";
-        item.textContent = opt.trim();
+      console.log("✅ selectedOptions setelah parsing:", selectedOptions);
 
-        var input = document.getElementById("node-input-options");
-        var selectedValues = input.value
-          ? input.value.split(",").map((v) => v.trim())
-          : [];
-
-        if (selectedValues.includes(opt.trim())) {
-          item.classList.add("active-options"); // Tambahkan class jika sudah dipilih
-        }
-
-        item.onclick = function (event) {
-          toggleSelection(opt.trim(), event);
-        };
-        dropdownMultiple.appendChild(item);
+      $(document).ready(function () {
+        $.ajax({
+          url: `https://bpm.cudo.co.id/flag/get-dropdown?app_id=APP20241121054223`,
+          type: "GET",
+          success: function (data) {
+            optionsData = data.data;
+            renderDropdown();
+          },
+          error: function (xhr, status, error) {
+            console.log("Exr: ", xhr);
+            console.error("Error:", status, error);
+          },
+        });
       });
 
-      function toggleSelection(value, event) {
-        var input = document.getElementById("node-input-options");
-        var selectedValues = input.value.split(",").map((v) => v.trim());
-        var element = event.target;
-        if (selectedValues.includes(value)) {
-          selectedValues = selectedValues.filter((v) => v !== value);
+      if (node.options && node.flag) {
+        try {
+          selectedOptions = node.flag;
+        } catch (e) {
+          selectedOptions = [];
+          console.error("Error parsing node.options:", e);
+        }
+      }
+
+      function updateInputs() {
+        inputDisplay.value = selectedOptions
+          .map((opt) => opt.flag_name)
+          .join(", ");
+
+        inputHidden.value = JSON.stringify(selectedOptions);
+      }
+
+      function renderDropdown() {
+        dropdownMultiple.innerHTML = "";
+        optionsData.forEach((option) => {
+          console.log(option, "option dropdwon");
+          const item = document.createElement("div");
+          item.className = "dropdown-item";
+          item.textContent = option.flag_name;
+          item.setAttribute("data-id", option.flag_id);
+
+          if (selectedOptions.some((opt) => opt.flag_id === option.flag_id)) {
+            item.classList.add("active-options");
+          }
+
+          item.onclick = () => toggleSelection(option, item);
+          dropdownMultiple.appendChild(item);
+        });
+
+        updateInputs();
+      }
+
+      function toggleSelection(option, element) {
+        let index = selectedOptions.findIndex(
+          (opt) => opt.flag_id === option.flag_id
+        );
+
+        if (index !== -1) {
+          selectedOptions.splice(index, 1);
           element.classList.remove("active-options");
         } else {
-          selectedValues.push(value);
+          selectedOptions.push(option);
           element.classList.add("active-options");
         }
-        input.value = selectedValues;
+
+        updateInputs();
+
+        node.options = JSON.stringify(selectedOptions);
+        node.flag = selectedOptions;
       }
+
+      renderDropdown();
 
       document
         .getElementById("node-input-options")
@@ -248,6 +311,8 @@
           };
         })
         .get();
+
+      this.options = $("#node-input-hidden").val();
     },
   });
 </script>
@@ -311,7 +376,7 @@
   </div>
 
   <div class="form-row" style="display: flex;">
-    <label for="node-input-options"><i class="fa fa-list"></i> Options</label>
+    <label for="node-input-options"><i class="fa fa-list"></i> Flags</label>
     <div class="dropdown-container">
       <input
         type="text"
@@ -320,6 +385,8 @@
         readonly
         style="width: 100%; cursor: pointer;"
       />
+      <input type="hidden" id="node-input-hidden" name="selectedFlags" />
+
       <div id="node-input-dropdown"></div>
     </div>
   </div>
