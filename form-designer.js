@@ -9,7 +9,7 @@ module.exports = function (RED) {
                 msg.files = config.files;
                 msg.rows = config.rows;
                 msg.flag = config.flag;
-                msg.options = config.options
+                msg.roles = config.roles
 
                 node.warn("form designer: " + JSON.stringify(msg)); 
                 node.send(msg);

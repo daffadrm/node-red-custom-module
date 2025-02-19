@@ -7,6 +7,7 @@
       rows: { value: [{ label: "", name: "", type: "string" }] }, // Data tabel
       options: { value: [] },
       flag: { value: [] },
+      roles: { value: [] },
     },
     inputs: 1,
     outputs: 1,
@@ -61,9 +62,20 @@
       let optionsData = [];
       let selectedOptions = [];
 
+      let optionDataRoles = [];
+      let selectedOptionRoles = [];
+
       var dropdownMultiple = document.getElementById("node-input-dropdown");
       var inputDisplay = document.getElementById("node-input-options"); // Untuk menampilkan flag_name
       var inputHidden = document.getElementById("node-input-hidden"); // Untuk menyimpan flag_id
+
+      var dropdownMultipleRoles = document.getElementById(
+        "node-input-dropdown-roles"
+      );
+      var inputDisplayRoles = document.getElementById(
+        "node-input-options-roles"
+      );
+      var inputHiddenRoles = document.getElementById("node-input-hidden-roles");
 
       console.log("✅ selectedOptions setelah parsing:", selectedOptions);
 
@@ -82,11 +94,36 @@
         });
       });
 
+      $(document).ready(function () {
+        $.ajax({
+          url: `https://bpm.cudo.co.id/role/get-dropdown?app_id=APP20241121054223`,
+          type: "GET",
+          success: function (data) {
+            optionDataRoles = data.data;
+            console.log(data?.data, "data role");
+            renderDropdownRoles();
+          },
+          error: function (xhr, status, error) {
+            console.log("Exr: ", xhr);
+            console.error("Error:", status, error);
+          },
+        });
+      });
+
       if (node.options && node.flag) {
         try {
           selectedOptions = node.flag;
         } catch (e) {
           selectedOptions = [];
+          console.error("Error parsing node.options:", e);
+        }
+      }
+
+      if (node.roles) {
+        try {
+          selectedOptionRoles = node.roles;
+        } catch (error) {
+          selectedOptionRoles = [];
           console.error("Error parsing node.options:", e);
         }
       }
@@ -97,6 +134,13 @@
           .join(", ");
 
         inputHidden.value = JSON.stringify(selectedOptions);
+      }
+
+      function updateInputsRoles() {
+        inputDisplayRoles.value = selectedOptionRoles
+          .map((opt) => opt.role_name)
+          .join(", ");
+        inputHiddenRoles.value = JSON.stringify(selectedOptionRoles);
       }
 
       function renderDropdown() {
@@ -119,6 +163,29 @@
         updateInputs();
       }
 
+      function renderDropdownRoles() {
+        dropdownMultipleRoles.innerHTML = "";
+        console.log("renderDropdown");
+        optionDataRoles.forEach((option) => {
+          console.log(option, "option dropdwon roles");
+          const item = document.createElement("div");
+          item.classList = "dropdown-item-roles";
+          item.textContent = option.role_name;
+          item.setAttribute("data-id", option.role_id);
+
+          if (
+            selectedOptionRoles.some((opt) => opt.role_id === option.role_id)
+          ) {
+            item.classList.add("active-options-roles");
+          }
+
+          item.onclick = () => toogleSelectionRoles(option, item);
+          dropdownMultipleRoles.appendChild(item);
+        });
+
+        updateInputsRoles();
+      }
+
       function toggleSelection(option, element) {
         let index = selectedOptions.findIndex(
           (opt) => opt.flag_id === option.flag_id
@@ -134,11 +201,30 @@
 
         updateInputs();
 
-        node.options = JSON.stringify(selectedOptions);
         node.flag = selectedOptions;
       }
 
+      function toogleSelectionRoles(option, element) {
+        let index = selectedOptionRoles.findIndex(
+          (opt) => opt.role_id === option.role_id
+        );
+
+        if (index !== -1) {
+          selectedOptionRoles.splice(index, 1);
+          element.classList.remove("active-options-roles");
+        } else {
+          selectedOptionRoles.push(option);
+          element.classList.add("active-options-roles");
+        }
+
+        updateInputsRoles();
+
+        node.roles = selectedOptionRoles;
+      }
+
       renderDropdown();
+
+      renderDropdownRoles();
 
       document
         .getElementById("node-input-options")
@@ -147,12 +233,28 @@
             dropdownMultiple.style.display === "block" ? "none" : "block";
         });
 
+      document
+        .getElementById("node-input-options-roles")
+        .addEventListener("click", function () {
+          dropdownMultipleRoles.style.display =
+            dropdownMultipleRoles.style.display === "block" ? "none" : "block";
+        });
+
       document.addEventListener("click", function (event) {
         if (
           !event.target.closest("#node-input-options") &&
           !event.target.closest("#node-input-dropdown")
         ) {
           dropdownMultiple.style.display = "none";
+        }
+      });
+
+      document.addEventListener("click", function (event) {
+        if (
+          !event.target.closest("#node-input-options-roles") &&
+          !event.target.closest("#node-input-dropdown-roles")
+        ) {
+          dropdownMultipleRoles.style.display = "none";
         }
       });
 
@@ -335,6 +437,36 @@
     z-index: 1000;
   }
 
+  .dropdown-container-roles {
+    position: relative;
+    display: inline-block;
+    width: 100%;
+  }
+
+  #node-input-dropdown-roles {
+    display: none;
+    position: absolute;
+    width: 100%;
+    background: white;
+    border: 1px solid #ccc;
+    max-height: 150px;
+    overflow-y: auto;
+    z-index: 1000;
+  }
+
+  .dropdown-item-roles {
+    padding: 5px;
+    cursor: pointer;
+  }
+
+  .dropdown-item-roles:hover {
+    background-color: #ddd;
+  }
+
+  .active-options-roles {
+    background-color: #d3d3d3;
+  }
+
   .dropdown-item {
     padding: 5px;
     cursor: pointer;
@@ -388,6 +520,23 @@
       <input type="hidden" id="node-input-hidden" name="selectedFlags" />
 
       <div id="node-input-dropdown"></div>
+    </div>
+  </div>
+  <div class="form-row" style="display: flex;">
+    <label for="node-input-options-roles"
+      ><i class="fa fa-list"></i> Roles</label
+    >
+    <div class="dropdown-container-roles">
+      <input
+        type="text"
+        id="node-input-options-roles"
+        placeholder="Click to select roles"
+        readonly
+        style="width: 100%; cursor: pointer;"
+      />
+      <input type="hidden" id="node-input-hidden-roles" name="selectedRoles" />
+
+      <div id="node-input-dropdown-roles"></div>
     </div>
   </div>
 </script>
